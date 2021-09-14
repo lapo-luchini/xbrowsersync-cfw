@@ -1,5 +1,6 @@
 // settings
 const createNewBookmarksEnabled = true
+const listenPort = 8080
 // end of settings
 
 const cors = {
@@ -7,38 +8,57 @@ const cors = {
   'Access-Control-Allow-Methods': 'GET, POST, PUT',
   'Access-Control-Allow-Origin': 'chrome-extension://lcbjdhceifofjlpecfpeimnnphbcjgnc',
   'Access-Control-Allow-Headers': 'Content-Type, Accept-Version',
-};
-
-// KV binding XBSKV must be available
-if (typeof XBSKV === 'undefined') {
-  addEventListener('fetch', event => {
-    event.respondWith(
-      new Response(
-        'XBSKV is not defined, please check KV Namespace Bindings.',
-        { status: 500 },
-      ),
-    )
-  })
-} else {
-  addEventListener('fetch', event => {
-    event.respondWith(
-      handleRequest(event.request).catch(
-        err => new Response(err.stack, { status: 500 }),
-      ),
-    )
-  })
 }
+
+import http from 'http'
+import { webcrypto } from 'crypto'
+import * as XBSKV from './sqlite.js'
+
+class HTTPError extends Error {
+  constructor(message, state) {
+    super(message)
+    this.state = state || 400
+  }
+}
+
+async function readJSON() {
+  let data = ''
+  for await (const chunk of this) data += chunk
+  return JSON.parse(data)
+}
+
+const server = http.createServer(async (req, res) => {
+  try {
+    req.json = readJSON
+    let json = await handleRequest(req)
+    res.writeHead(
+      200,
+      Object.assign({ 'Content-Type': 'application/json' }, cors),
+    )
+    res.end(JSON.stringify(json))
+  } catch (e) {
+    console.log(e.stack)
+    if (!(e instanceof HTTPError)) e = new HTTPError('unknown error', 500)
+    res.writeHead(
+      e.state,
+      Object.assign({ 'Content-Type': 'text/plain' }, cors),
+    )
+    res.end(e.message)
+  }
+})
+server.listen(listenPort)
 
 /**
  * @param {Request} request
  * @returns {Promise<Response>}
  */
 const handleRequest = async request => {
-  const { pathname } = new URL(request.url)
+  const pathname = request.url
 
   if (request.method === 'OPTIONS') {
     return jsonToResponse('')
   }
+  console.log(request.method, pathname)
 
   // service info
   if (pathname === '/info') {
@@ -69,22 +89,17 @@ const handleRequest = async request => {
 }
 
 const jsonToResponse = json => {
-  return new Response(JSON.stringify(json), {
-    headers: Object.assign({ 'Content-Type': 'application/json' }, cors)
-  })
+  return json
 }
 
 const sendError = (text, err) => {
-  return new Response(text, {
-    status: err || 400,
-    headers: Object.assign({ 'Content-Type': 'text/plain' }, cors)
-  })
+  throw new HTTPError(text, err)
 }
 
 const handleServiceInfo = () => {
   return jsonToResponse({
     maxSyncSize: 104857600,
-    message: 'Welcome to xbrowsersync-cfw.',
+    message: 'Welcome to xbrowsersync-sqlite.',
     status: createNewBookmarksEnabled ? 1 : 3,
     version: '1.1.13',
   })
@@ -148,6 +163,6 @@ const handleGetBookmarks = async paths => {
 
 const hexUUID = () => {
   const arr = new Uint8Array(16)
-  crypto.getRandomValues(arr)
+  webcrypto.getRandomValues(arr)
   return [...arr].map(x => x.toString(16).padStart(2, '0')).join('')
 }

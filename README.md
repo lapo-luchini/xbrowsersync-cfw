@@ -1,14 +1,6 @@
-# xBrowserSync API implementation using Cloudflare worker and KV
+# xBrowserSync API implementation using SQLite
 
-This is a simple implementation of the [xBrowserSync API](https://github.com/xbrowsersync/api) using Cloudflare workder.
-It uses Cloudflare KV as storage.
-
-## Deployment
-
-- Create a Cloudflare worker project
-- Create a KV namespace, and add KV binding in the worker project, name it as `XBSKV`
-- Paste the content of [index.js](./index.js) into worker, modify the settings and then save and deploy
-- Profit
+This is a simple implementation of the [xBrowserSync API](https://github.com/xbrowsersync/api) using SQLite database.
 
 ## Usage
 

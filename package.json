@@ -4,12 +4,17 @@
   "version": "1.0.0",
   "description": "A template for kick starting a Cloudflare Workers project",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "format": "prettier --write '**/*.{js,css,json,md}'"
+    "format": "prettier --write *.js"
   },
   "author": "Tianxiang Chen <txchendev@gmail.com>",
   "license": "MIT",
+  "dependencies": {
+    "sqlite": "^4.0.23",
+    "sqlite3": "^5.0.2"
+  },
   "devDependencies": {
     "prettier": "^1.18.2"
   }
